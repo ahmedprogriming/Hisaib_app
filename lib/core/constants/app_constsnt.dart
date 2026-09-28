@@ -1,6 +1,10 @@
-class AppConstsnt 
+class AppConstants 
 {
  static const String appName = 'حسابي';
+
+   // رقم واتساب الدعم — يظهر لصاحب البقالة عند انتهاء اشتراكه لتجديده يدوياً.
+
+  static const String supportWhatsappNumber = '+967780775168';
 
   // أسماء الـ Collections في Firestore
   static const String storesCollection = 'stores';

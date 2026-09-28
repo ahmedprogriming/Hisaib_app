@@ -9,6 +9,8 @@ class CustomTextFiled extends StatefulWidget {
   final bool obsecureText;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
+  final Duration? decoration;
+  final TextDirection? textDirection;
 
   const CustomTextFiled({
     super.key,
@@ -18,6 +20,7 @@ class CustomTextFiled extends StatefulWidget {
     this.obsecureText = false,
     this.keyboardType = TextInputType.text,
     this.validator,
+     this.decoration, this.textDirection,
   });
 
   @override
@@ -36,12 +39,13 @@ class _CustomTextFiledState extends State<CustomTextFiled> {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      textDirection: widget.textDirection,
       controller: widget.controller,
       obscureText: _hidden,
       keyboardType: widget.keyboardType,
       validator: widget.validator,
       style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
-      decoration: InputDecoration(
+      decoration: widget.decoration== null ? InputDecoration(
         hintText: widget.hint,
         hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         filled: true,
@@ -76,7 +80,7 @@ class _CustomTextFiledState extends State<CustomTextFiled> {
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.danger, width: 1.8),
         ),
-      ),
+      ):null,
     );
   }
 }

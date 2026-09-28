@@ -21,19 +21,20 @@ class CustomButton extends StatelessWidget {
       width: double.infinity,
       height: 54,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16), // تم التعديل إلى 16 ليتماشى مع انحناءات التصميم الجديد
         gradient: onTap != null
             ? const LinearGradient(
-                colors: [AppColors.primary, AppColors.warning],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                // استخدام الفيروزي والأخضر الزمردي لتدرج عصري ونظيف
+                colors: [AppColors.primary, AppColors.success],
+                begin: Alignment.centerRight, // يبدأ من اليمين لدعم الواجهة العربية
+                end: Alignment.centerLeft,
               )
             : null,
         color: onTap == null ? Colors.grey.shade300 : null,
         boxShadow: onTap != null
             ? [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.28),
+                  color: AppColors.primary.withOpacity(0.3), // ظل ناعم بلون التطبيق الأساسي
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -43,7 +44,7 @@ class CustomButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           onTap: isLoading ? null : onTap,
           child: Center(
             child: isLoading
@@ -64,8 +65,7 @@ class CustomButton extends StatelessWidget {
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
+                          fontWeight: FontWeight.w700, // زيادة سمك الخط ليكون أوضح
                         ),
                       ),
                     ],

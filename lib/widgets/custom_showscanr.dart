@@ -6,83 +6,93 @@ void showSnackbar(
   BuildContext context,
   String message, {
   SnackBarType type = SnackBarType.info,
-  Duration duration = const Duration(seconds: 3),
+  Duration duration = const Duration(seconds: 4),
 }) {
   // إخفاء أي تنبيه حالي على الفور لمنع تراكم التنبيهات
   ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
   // تحديد اللون والأيقونة حسب نوع التنبيه
+  // تم تحديث الألوان هنا لتتناسب مع الشعار الفيروزي
   Color backgroundColor;
   Color borderColor;
   Color textColor;
   IconData iconData;
 
+  // الألوان الأساسية المستخرجة من الشعار للاستخدام كمرجع
+  // const Color logoPrimaryTeal = Color(0xff1BCBDC);
+  // const Color logoDarkTeal = Color(0xff09838E);
+
   switch (type) {
     case SnackBarType.success:
-      backgroundColor = const Color(0xffF4FBF7);
-      borderColor = const Color(0xff66BB6A);
-      textColor = const Color(0xff1B5E20);
-      iconData = Icons.check_circle_outline_rounded;
+      // نجاح: أخضر زمردي مائل للزرقة يتناغم مع الفيروزي
+      backgroundColor = const Color(0xffF2FFFD); // فاتح جداً
+      borderColor = const Color(0xff00B8A0);     // أخضر زمردي
+      textColor = const Color(0xff006155);       // داكن
+      iconData = Icons.check_circle_rounded;
       break;
     case SnackBarType.error:
-      backgroundColor = const Color(0xffFDF4F4);
-      borderColor = const Color(0xffEF5350);
-      textColor = const Color(0xffB71C1C);
-      iconData = Icons.error_outline_rounded;
+      // خطأ: أحمر قرمزي دافئ يتناقض بشكل جميل مع الفيروزي
+      backgroundColor = const Color(0xffFFFAFA); // فاتح جداً
+      borderColor = const Color(0xffEF4444);     // أحمر دافئ
+      textColor = const Color(0xff8A2121);       // داكن
+      iconData = Icons.error_rounded;
       break;
     case SnackBarType.warning:
-      backgroundColor = const Color(0xffFFFDF0);
-      borderColor = const Color(0xffFFA726);
-      textColor = const Color(0xffE65100);
-      iconData = Icons.warning_amber_rounded;
+      // تحذير: برتقالي ذهبي دافئ يتناغم مع الفيروزي
+      backgroundColor = const Color(0xffFFFBF2); // فاتح جداً
+      borderColor = const Color(0xffFF8F00);     // برتقالي دافئ
+      textColor = const Color(0xff8A4D00);       // داكن
+      iconData = Icons.warning_rounded;
       break;
     case SnackBarType.info:
     default:
-      // طابع العيادة (الذهبي الدافئ)
-      backgroundColor = const Color(0xffFCF8EF);
-      borderColor = const Color(0xffD4AF37);
-      textColor = const Color(0xff3D291C);
-      iconData = Icons.info_outline_rounded;
+      // معلومات/افتراضي: استخدام لون الشعار الأساسي مباشرة
+      backgroundColor = const Color(0xffF2FEFE); // فاتح جداً من الفيروزي
+      borderColor = const Color(0xff1BCBDC);     // لون الشعار الفاتح
+      textColor = const Color(0xff064F56);       // فيروزي داكن جداً للنص
+      iconData = Icons.info_rounded;
       break;
   }
 
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       behavior: SnackBarBehavior.floating,
-      elevation: 4,
+      elevation: 6, // زيادة الظل قليلاً لإبرازه على الخلفيات الملونة
       duration: duration,
       backgroundColor: backgroundColor,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20), // زيادة الهامش السفلي قليلاً
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: borderColor.withValues(alpha: 0.5), width: 1.2),
+        borderRadius: BorderRadius.circular(20), // زوايا أكثر استدارة لتتناسب مع انحناءات الشعار
+        side: BorderSide(color: borderColor.withValues(alpha: 0.4), width: 1.5), // زيادة سماكة الحد قليلاً
       ),
       content: Directionality(
-        textDirection: TextDirection.ltr,
+        textDirection: TextDirection.rtl, // تغيير الاتجاه للعربية افتراضياً
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: borderColor.withValues(alpha: 0.15),
+                color: borderColor.withValues(alpha: 0.12), // خلفية أيقونة أكثر نعومة
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 iconData,
                 color: borderColor,
-                size: 22,
+                size: 24, // زيادة حجم الأيقونة قليلاً
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Text(
                 message,
                 style: TextStyle(
                   color: textColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
+                  fontSize: 15, // زيادة حجم الخط قليلاً للوضوح
+                  fontWeight: FontWeight.w700, // خط أكثر سمكاً ليتناسب مع الشعار
+                  height: 1.4,
+                  // يمكن إضافة خط مخصص هنا إذا كان متاحاً
+                  // fontFamily: 'YourCustomFont', 
                 ),
               ),
             ),
