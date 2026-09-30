@@ -115,7 +115,7 @@ class HomePage extends StatelessWidget {
         onDestinationSelected: (i) {
           if (i == 1) Navigator.pushNamed(context, AppRoutes.customers);
           if (i == 2) Navigator.pushNamed(context, AppRoutes.reports);
-          //if (i == 3) Navigator.pushNamed(context, AppRoutes.settings);
+          if (i == 3) Navigator.pushNamed(context, AppRoutes.settings);
         },
       ),
     );

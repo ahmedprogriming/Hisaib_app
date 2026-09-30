@@ -6,6 +6,7 @@ import 'package:management_debts_app/views/customers/customer_Details_view.dart'
 import 'package:management_debts_app/views/customers/customers_view.dart';
 import 'package:management_debts_app/views/home/home_view.dart';
 import 'package:management_debts_app/views/reports/reports_view.dart';
+import 'package:management_debts_app/views/settings/setting_page.dart';
 
 class AppRoutes {
     AppRoutes._();
@@ -16,7 +17,9 @@ class AppRoutes {
   static const String addTransaction='/addTransaction';
   static const String customerDetails='/customerDetaild';
   static const String customers='/customer';
-   static const String reports='/reports';
+ static const String reports='/reports';
+  static const String settings='/settings';
+
   static Route<dynamic> onGenerateRoute(RouteSettings setting)
   {
     switch(setting.name)
@@ -34,7 +37,9 @@ class AppRoutes {
    case customers:
    return MaterialPageRoute(builder: (_)=> const CustomersPage());
     case reports:
-   return MaterialPageRoute(builder: (_)=> const ReportsPage());
+    return MaterialPageRoute(builder: (_)=> const CustomersPage());
+    case settings:
+   return MaterialPageRoute(builder: (_)=> const SettingPage());
     default:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(
