@@ -1,7 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:management_debts_app/routes/app_routes.dart';
-import 'package:management_debts_app/widgets/custom_buttton.dart';
-import 'package:management_debts_app/widgets/text_fileid.dart';
+import 'package:management_debts_app/services/auth_service.dart';
+import 'package:management_debts_app/widgets/custom_showscanr.dart';
 import '../../../core/theme/app_colors.dart';
 
 class LoginPage extends StatefulWidget {
@@ -9,31 +10,84 @@ class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State createState() => _LoginPageState();
+  // تم التصحيح هنا بإضافة 
+  State createState() => _LoginPageState(); 
 }
 
-class _LoginPageState extends State {
-  final _formKey = GlobalKey();
-  final _emailCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
+// تم التصحيح هنا بإضافة 
+class _LoginPageState extends State { 
+  final _formKey =GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _authService = AuthService();
+
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
-    _passwordCtrl.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  /*
-  void _onLogin() {
-    if (_formKey.currentState!.validate()) {
-      context.read().login(
-            _emailCtrl.text.trim(),
-            _passwordCtrl.text.trim(),
-          );
+  Future _handleLogin() async {
+    setState(() => _errorMessage = null);
+    FocusScope.of(context).unfocus();
+
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _authService.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.home,
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() => _errorMessage = _mapAuthError(e.code));
+      showSnackbar(
+       context,
+           _errorMessage!,
+        type: SnackBarType.error,
+      );
+    } catch (e) {
+      setState(() => _errorMessage = 'حدث خطأ غير متوقع، تحقق من اتصالك بالإنترنت');
+      showSnackbar(
+        context,
+        _errorMessage!,
+        type: SnackBarType.error,
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-  */
+
+  String _mapAuthError(String code) {
+    switch (code) {
+      case 'invalid-email':
+        return 'صيغة البريد الإلكتروني غير صحيحة';
+      case 'user-not-found':
+      case 'invalid-credential':
+        return 'لا يوجد حساب بهذه البيانات';
+      case 'wrong-password':
+        return 'كلمة المرور غير صحيحة';
+      case 'too-many-requests':
+        return 'محاولات كثيرة، حاول لاحقاً';
+      case 'network-request-failed':
+        return 'تحقق من اتصالك بالإنترنت';
+      default:
+        return 'تعذر تسجيل الدخول، حاول مرة أخرى';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +102,6 @@ class _LoginPageState extends State {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 1. الشعار
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
@@ -71,8 +124,6 @@ class _LoginPageState extends State {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // 2. النصوص الترحيبية
                   const Text(
                     'حسابي',
                     style: TextStyle(
@@ -91,14 +142,13 @@ class _LoginPageState extends State {
                   ),
                   const SizedBox(height: 36),
 
-                  // 3. القالب الاحترافي (البطاقة البيضاء)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 32,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surface, // لون البطاقة الأبيض
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
@@ -111,47 +161,92 @@ class _LoginPageState extends State {
                     child: Form(
                       key: _formKey,
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          CustomTextFiled(
-                            controller: _emailCtrl,
-                            hint: 'البريد الإلكتروني',
-                            textDirection: TextDirection.ltr,
-                            prefixIcon: Icons.email_outlined,
+                          // تم إضافة ودجت لعرض رسالة الخطأ هنا إن وجدت
+                          if (_errorMessage != null) ...[
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                _errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
 
+                          TextFormField(
+                            controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
-                            validator: (val) => val == null || val.isEmpty
-                                ? 'البريد الإلكتروني مطلوب'
-                                : null,
-                          ),
-                          const SizedBox(height: 20),
-                          CustomTextFiled(
-                            controller: _passwordCtrl,
-                            hint: 'كلمة المرور',
-                            prefixIcon: Icons.lock_outline,
                             textDirection: TextDirection.ltr,
-                            obsecureText: true,
-                            validator: (val) => val == null || val.isEmpty
-                                ? 'كلمة المرور مطلوبة'
-                                : null,
+                            decoration: const InputDecoration(
+                              labelText: 'البريد الإلكتروني',
+                              prefixIcon: Icon(Icons.mail_outline),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'أدخل البريد الإلكتروني';
+                              }
+                              if (!value.contains('@')) return 'صيغة البريد غير صحيحة';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            decoration: InputDecoration(
+                              labelText: 'كلمة المرور',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(_obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined),
+                                onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) return 'أدخل كلمة المرور';
+                              if (value.length < 6) return 'كلمة المرور 6 أحرف على الأقل';
+                              return null;
+                            },
+                            onFieldSubmitted: (_) => _handleLogin(),
                           ),
                           const SizedBox(height: 32),
-
-                          CustomButton(
-                            namebutton: 'تسجيل الدخول',
-                            //isLoading: isLoading,
-                            onTap: () => Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.home,
-                                ),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _handleLogin,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('تسجيل الدخول', style: TextStyle(fontSize: 16)),
                           ),
                           const SizedBox(height: 24),
-
-                          // الانتقال لإنشاء حساب
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Text(
-                                'ليس لديك حساب؟',
+                                'ليس لديك بقالة مسجّلة؟',
                                 style: TextStyle(
                                   color: AppColors.textPrimary,
                                   fontSize: 14,
@@ -164,10 +259,10 @@ class _LoginPageState extends State {
                                   AppRoutes.register,
                                 ),
                                 child: const Text(
-                                  'إنشاء حساب جديد',
+                                  'أنشئ حساب بقالة جديدة',
                                   style: TextStyle(
                                     color: AppColors.primary,
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),

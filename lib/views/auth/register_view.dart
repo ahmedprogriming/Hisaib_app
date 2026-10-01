@@ -1,6 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:management_debts_app/core/constants/app_constsnt.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
 import 'package:management_debts_app/routes/app_routes.dart';
+import 'package:management_debts_app/services/auth_service.dart';
 import 'package:management_debts_app/widgets/custom_buttton.dart';
 import 'package:management_debts_app/widgets/custom_showscanr.dart';
 import 'package:management_debts_app/widgets/text_fileid.dart';
@@ -16,75 +20,118 @@ class RagisterPage extends StatefulWidget {
 
 class _RagisterPageState extends State<RagisterPage> {
   static const int _trialDays = 14;
-
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController _passwordCtrl = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   final _storeNameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   String _currency = 'ريال يمني';
-
-  bool isLoading = false;
+  bool _isLoading = false;
+  String? _errorMessage;
+ bool _obscurePassword = true;
+  final _authService = AuthService();
 
   @override
   void dispose() {
     _storeNameController.dispose();
-    emailController.dispose();
-    _passwordCtrl.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
 
-  /*
   Future<void> _handleRegister() async {
-    if (!formKey.currentState!.validate()) return;
+    setState(() => _errorMessage = null);
+    FocusScope.of(context).unfocus();
 
-    if (passwordController.text != confirmPasswordController.text) {
-      showSnackbar(context, 'كلمتا المرور غير متطابقتين', type: SnackBarType.error);
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    setState(() => isLoading = true);
+    setState(() => _isLoading = true);
 
     try {
-      await regesterUser(
-        emailController.text.trim(),
-        passwordController.text.trim(),
-        nameController.text.trim(),
+      // 1) إنشاء حساب المصادقة
+      final credential = await _authService.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
+
+      final storeId = credential.user!.uid;
+      final now = DateTime.now();
+
+      // 2) إنشاء مستند البقالة بنفس uid (هذا ما يجعل الفصل بين البقالات ممكناً)
+      await FirebaseFirestore.instance
+          .collection(AppConstants.storesCollection)
+          .doc(storeId)
+          .set({
+            'name': _storeNameController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'currency': _currency,
+            'createdAt': now,
+            'subscriptionStartedAt': now,
+            'subscriptionEndsAt': now.add(
+              const Duration(days: /*_trialDays*/ 2),
+            ),
+            'isActive': true,
+          });
+
       if (!mounted) return;
-      BlocProvider.of<PatientsCubit>(context).getpatients();
-      Navigator.pushReplacementNamed(
-        context,
-        DashboardPage.id,
-        arguments: emailController.text.trim(),
+
+      // 3) عرض تنبيه بسيط بالفترة التجريبية قبل الانتقال
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('تم إنشاء حسابك'),
+          content: Text(
+            'بقالتك جاهزة! لديك اشتراك تجريبي مجاني لمدة $_trialDays يوماً.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('حسناً'),
+            ),
+          ],
+        ),
       );
-      // حفظ حالة "is_first_time" في SharedPreferences
-final prefs = await SharedPreferences.getInstance();
-await prefs.setBool('is_first_time', false);
-    } on FirebaseAuthException catch (ex) {
-      if (ex.code == 'weak-password') {
-        showSnackbar(context, 'كلمة المرور ضعيفة، يرجى اختيار كلمة مرور أقوى.', type: SnackBarType.error);
-      } else if (ex.code == 'email-already-in-use') {
-        showSnackbar(
-          context,
-          'هذا البريد الإلكتروني مسجل بالفعل، يرجى استخدام بريد آخر.',
-          type: SnackBarType.error,
-        );
-      } else if (ex.code == 'invalid-email') {
-        showSnackbar(context, 'البريد الإلكتروني غير صحيح، يرجى التأكد منه.', type: SnackBarType.error);
-      } else {
-        showSnackbar(context, ex.message ?? 'تعذر إكمال التسجيل', type: SnackBarType.error);
-      }
+
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (r) => false);
+    } on FirebaseAuthException catch (e) {
+      setState(() => _errorMessage = _mapAuthError(e.code));
+     showSnackbar(
+       context,
+           _errorMessage!,
+        type: SnackBarType.error,
+      );
+      
     } catch (_) {
-      showSnackbar(context, 'حدث خطأ، يرجى المحاولة مرة أخرى.', type: SnackBarType.error);
+      setState(
+        () => _errorMessage = 'تعذر إنشاء الحساب، تحقق من اتصالك بالإنترنت',
+      );
+      showSnackbar(
+        context,
+        _errorMessage!,
+        type: SnackBarType.error,
+      );
     } finally {
-      if (mounted) setState(() => isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-  */
+
+  String _mapAuthError(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'هذا البريد مستخدم من قبل، جرّب تسجيل الدخول';
+      case 'invalid-email':
+        return 'صيغة البريد الإلكتروني غير صحيحة';
+      case 'weak-password':
+        return 'كلمة المرور ضعيفة جداً';
+      case 'network-request-failed':
+        return 'تحقق من اتصالك بالإنترنت';
+      default:
+        return 'تعذر إنشاء الحساب، حاول مرة أخرى';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +145,7 @@ await prefs.setBool('is_first_time', false);
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Form(
-                  key: formKey,
+                  key: _formKey,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -207,58 +254,110 @@ await prefs.setBool('is_first_time', false);
                         ),
                         child: Column(
                           children: [
-                            CustomTextFiled(
-                              hint: 'اسم البقالة',
+                            TextFormField(
                               controller: _storeNameController,
-                              prefixIcon: Icons.storefront_outlined,
+                              decoration: const InputDecoration(
+                                labelText: 'اسم البقالة *',
+                                prefixIcon: Icon(Icons.storefront_outlined),
+                              ),
                               validator: (v) => (v == null || v.trim().isEmpty)
                                   ? 'أدخل اسم البقالة'
                                   : null,
                             ),
                             const SizedBox(height: 14),
-                            CustomTextFiled(
+                            TextFormField(
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
                               textDirection: TextDirection.ltr,
-                              prefixIcon: Icons.phone_android_outlined,
-                              hint: 'رقم هاتف',
+                              decoration: const InputDecoration(
+                                labelText: 'رقم الهاتف *',
+                                hintText: '+967 780 775 168',
+                                prefixIcon: Icon(Icons.phone_outlined),
+                              ),
                               validator: (v) =>
                                   (v == null || v.trim().length < 8)
                                   ? 'أدخل رقم هاتف صحيح'
                                   : null,
                             ),
-
                             const SizedBox(height: 14),
-                            CustomTextFiled(
-                              hint: 'البريد الإلكتروني',
-                              controller: emailController,
-                                 textDirection: TextDirection.ltr,
-                              prefixIcon: Icons.email_outlined,
+                            DropdownButtonFormField<String>(
+                              initialValue: _currency,
+                              decoration: const InputDecoration(
+                                labelText: 'العملة',
+                                prefixIcon: Icon(Icons.payments_outlined),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'ريال يمني',
+                                  child: Text('ريال يمني'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'ريال سعودي',
+                                  child: Text('ريال سعودي'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'دولار أمريكي',
+                                  child: Text('دولار أمريكي'),
+                                ),
+                              ],
+                              onChanged: (v) =>
+                                  setState(() => _currency = v ?? _currency),
                             ),
                             const SizedBox(height: 14),
-                            CustomTextFiled(
-                              controller: _passwordCtrl,
-                              hint: 'كلمة المرور',
-                                 textDirection: TextDirection.ltr,
-                              prefixIcon: Icons.lock_outline,
-                              obsecureText: true,
-                              validator: (val) => val == null || val.isEmpty
-                                  ? 'كلمة المرور مطلوبة'
-                                  : null,
+                            TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              textDirection: TextDirection.ltr,
+                              decoration: const InputDecoration(
+                                labelText: 'البريد الإلكتروني *',
+                                prefixIcon: Icon(Icons.mail_outline),
+                              ),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty)
+                                  return 'أدخل البريد الإلكتروني';
+                                if (!v.contains('@'))
+                                  return 'صيغة البريد غير صحيحة';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: _obscurePassword,
+                              decoration:  InputDecoration(
+                                labelText: 'كلمة المرور *',
+                                prefixIcon: Icon(Icons.lock_outline),
+                                  suffixIcon: IconButton(
+                                icon: Icon(_obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined),
+                                onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword),
+                              ),
+                              ),
+                              validator: (v) {
+                                if (v == null || v.isEmpty)
+                                  return 'أدخل كلمة المرور';
+                                if (v.length < 6)
+                                  return 'كلمة المرور 6 أحرف على الأقل';
+                                return null;
+                              },
+                              onFieldSubmitted: (_) => _handleRegister(),
                             ),
 
                             const SizedBox(height: 24),
-
-                            CustomButton(
-                              namebutton: isLoading
-                                  ? '...جاري إنشاء الحساب'
-                                  : 'تسجيل الحساب',
-
-                              onTap: isLoading
-                                  ? null
-                                  : () {
-                                      Center(child: Text('Successfullu'));
-                                    },
+                            ElevatedButton(
+                              onPressed: _isLoading ? null : _handleRegister,
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('إنشاء الحساب'),
                             ),
                           ],
                         ),

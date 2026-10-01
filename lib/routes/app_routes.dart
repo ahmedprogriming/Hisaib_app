@@ -5,12 +5,13 @@ import 'package:management_debts_app/views/auth/register_view.dart';
 import 'package:management_debts_app/views/customers/customer_Details_view.dart';
 import 'package:management_debts_app/views/customers/customers_view.dart';
 import 'package:management_debts_app/views/home/home_view.dart';
-import 'package:management_debts_app/views/reports/reports_view.dart';
+import 'package:management_debts_app/views/settings/auth_wrapper.dart';
 import 'package:management_debts_app/views/settings/setting_page.dart';
 
 class AppRoutes {
     AppRoutes._();
 
+ static const String splash='/';
   static const String login = '/login';
   static const String register = '/register';
   static const String home='/home';
@@ -40,6 +41,8 @@ class AppRoutes {
     return MaterialPageRoute(builder: (_)=> const CustomersPage());
     case settings:
    return MaterialPageRoute(builder: (_)=> const SettingPage());
+   case splash:
+   return MaterialPageRoute(builder: (_)=> const AuthWrapper());
     default:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(

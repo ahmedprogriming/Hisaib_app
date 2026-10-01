@@ -11,6 +11,7 @@ class CustomTextFiled extends StatefulWidget {
   final String? Function(String?)? validator;
   final Duration? decoration;
   final TextDirection? textDirection;
+  final Function(String)? onFieldSubmitted;
 
   const CustomTextFiled({
     super.key,
@@ -21,6 +22,7 @@ class CustomTextFiled extends StatefulWidget {
     this.keyboardType = TextInputType.text,
     this.validator,
      this.decoration, this.textDirection,
+    this.onFieldSubmitted,
   });
 
   @override
@@ -39,6 +41,7 @@ class _CustomTextFiledState extends State<CustomTextFiled> {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      onFieldSubmitted: widget.onFieldSubmitted,
       textDirection: widget.textDirection,
       controller: widget.controller,
       obscureText: _hidden,
