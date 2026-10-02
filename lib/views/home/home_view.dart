@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
+import 'package:management_debts_app/providers/customers_provider.dart';
 import 'package:management_debts_app/routes/app_routes.dart';
+import 'package:management_debts_app/widgets/recentCustomer.dart';
 import 'package:management_debts_app/widgets/stateCard.dart';
 import 'package:management_debts_app/widgets/totalPaymentCard.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -14,9 +17,9 @@ class HomePage extends StatelessWidget {
   }
   @override
   Widget build(BuildContext context) {
-     final provider = 'context.watch<CustomersProvider>();';
-    final debtorsCount = 15;
-    final recentCustomers = "لا يوجد";
+     final provider = context.watch<CustomersProvider>();
+    final debtorsCount = provider.customers.where((c) => c.balance > 0).length;
+    final recentCustomers = provider.customers.take(3).toList();
     return  Scaffold(
               appBar: AppBar(
         title: const Text('حسابي'),
@@ -40,7 +43,7 @@ class HomePage extends StatelessWidget {
                       style: TextStyle(color: Colors.white70, fontSize: 13)),
                   const SizedBox(height: 10),
                   Text(
-                    '${_formatCurrency(5000)} ريال',
+                    '${_formatCurrency(provider.totalOwed)} ريال',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 30,
@@ -54,7 +57,7 @@ class HomePage extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: TotalPaymentsCard(storeId: '5',),
+                  child: TotalPaymentsCard(storeId:provider.storeId,),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -79,7 +82,7 @@ class HomePage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 TextButton(
-                  onPressed: () => Navigator.pushNamed(context, AppRoutes.addTransaction),
+                  onPressed: () => Navigator.pushNamed(context, AppRoutes.customers),
                   child: const Text('عرض الكل'),
                 ),
                 const Text('آخر الحسابات',
@@ -87,7 +90,7 @@ class HomePage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-              if (provider.isEmpty)
+              if (provider.customers.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 40),
                 child: Center(
@@ -98,9 +101,9 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
               )
-          // else
+          else
             
-             // ...recentCustomers.map((c) => RecentCustomerTile(customer: c)),
+              ...recentCustomers.map((c) => RecentCustomerTile(customer: c)),
         ],
 
       )),

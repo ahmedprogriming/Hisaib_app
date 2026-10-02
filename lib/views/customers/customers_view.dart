@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:management_debts_app/core/constants/app_constsnt.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
 import 'package:management_debts_app/models/customer_model.dart';
+import 'package:management_debts_app/providers/customers_provider.dart';
 import 'package:management_debts_app/widgets/customer_tile.dart';
 import 'package:management_debts_app/widgets/showAddCustomerDilog.dart';
+import 'package:provider/provider.dart';
 
 class CustomersPage extends StatefulWidget {
   const CustomersPage({super.key});
@@ -22,14 +24,12 @@ class _CustomersPageState extends State<CustomersPage> {
     ('عليه دين', AppConstants.statusOwing),
     ('الكل', 'all'),
   ];
-  static   List<CustomerModel> customers=[CustomerModel(id: '1',name:  'احمد علي',phone:'780775168'),
-  CustomerModel(id: '2',name:  'احمد علي',phone:'780775168'),
-  CustomerModel(id: '3',name:  'احمد علي',phone:'780775168'),];
+
 
   @override
   Widget build(BuildContext context) {
 
-       /* final provider = context.watch<CustomersProvider>();
+        final provider = context.watch<CustomersProvider>();
 
     var customers = provider.filterByStatus(_selectedFilter);
     if (_searchQuery.trim().isNotEmpty) {
@@ -38,7 +38,7 @@ class _CustomersPageState extends State<CustomersPage> {
           .where((c) => c.name.contains(query) || c.phone.contains(query))
           .toList();
     }
-    */
+    
 
     return Scaffold(
       appBar: AppBar(

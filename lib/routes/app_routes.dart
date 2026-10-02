@@ -34,7 +34,8 @@ class AppRoutes {
     case addTransaction:
    return MaterialPageRoute(builder: (_)=> const AddtransactionPage());
     case customerDetails:
-   return MaterialPageRoute(builder: (_)=> const CustomerDetailsPage(customerId: '1'));
+    final customerId=setting.arguments as String;
+   return MaterialPageRoute(builder: (_)=>  CustomerDetailsPage(customerId: customerId,));
    case customers:
    return MaterialPageRoute(builder: (_)=> const CustomersPage());
     case reports:

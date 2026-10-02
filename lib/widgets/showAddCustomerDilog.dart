@@ -1,5 +1,7 @@
 
 import 'package:flutter/material.dart';
+import 'package:management_debts_app/providers/customers_provider.dart';
+import 'package:provider/provider.dart';
 
 Future<String?> showAddCustomerDialog(BuildContext context) async
 {
@@ -49,10 +51,10 @@ Future<String?> showAddCustomerDialog(BuildContext context) async
 
     if (confirmed != true || !context.mounted) return null;
 
- /* final provider =' context.read<CustomersProvider>()';
+  final provider =context.read<CustomersProvider>();
   return provider.addCustomer(
     name: nameController.text.trim(),
     phone: phoneController.text.trim(),
   );
-  */
+
 }

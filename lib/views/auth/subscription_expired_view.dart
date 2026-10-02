@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:management_debts_app/core/constants/app_constsnt.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
+import 'package:management_debts_app/routes/app_routes.dart';
+import 'package:management_debts_app/services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 
@@ -20,9 +22,9 @@ class SubscriptionExpiredPage extends StatelessWidget {
   }
 
   Future<void> _handleLogout(BuildContext context) async {
-   // await AuthService().signOut();
-    //if (!context.mounted) return;
-   // Navigator.pushNamedAndRemoveUntil(context, AppRoutes.splash, (r) => false);
+    await AuthService().signOut();
+    if (!context.mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.splash, (r) => false);
   }
   
   @override
