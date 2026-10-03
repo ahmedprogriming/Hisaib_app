@@ -190,6 +190,16 @@ class FirebaseSevice {
 
     batch.update(customerDoc, updateData);
 
+ // نحدّث "إجمالي المدفوعات" كرقم جاهز على مستند البقالة نفسها —
+    // لأن aggregate() في Firestore ما يدعم .snapshots() (لا يوجد Stream له)،
+    // فهذا الأسلوب (رقم مُجمّع مسبقاً) هو اللي يسمح بتحديث لحظي حقيقي.
+    if (type == AppConstants.transactionTypePayment) {
+      batch.update(storeDoc(storeId), {
+        'totalPayments': FieldValue.increment(amount),
+      });
+
+    }
+    
     await batch.commit();
   }
 
