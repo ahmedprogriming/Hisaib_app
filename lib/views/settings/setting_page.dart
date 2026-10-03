@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
+import 'package:management_debts_app/providers/customers_provider.dart';
+import 'package:management_debts_app/routes/app_routes.dart';
+import 'package:management_debts_app/services/auth_service.dart';
+import 'package:provider/provider.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -42,13 +46,35 @@ class _SettingPageState extends State<SettingPage> {
 
   }
   
-  void _handleLogout()
-  {
-    
+    Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('تسجيل الخروج'),
+        content: const Text('هل تريد تسجيل الخروج من حسابك؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('تسجيل الخروج', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    await AuthService().signOut();
+
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.splash, (r) => false);
   }
+  
   @override
   Widget build(BuildContext context) {
-     final storeId = 'context.watch<CustomersProvider>().storeId;';
+     final storeId = context.watch<CustomersProvider>().storeId;
     return Scaffold(
       appBar: AppBar(title: const Text('الإعدادات'),),
       body: ListView(

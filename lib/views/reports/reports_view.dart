@@ -1,7 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
+import 'package:management_debts_app/providers/customers_provider.dart';
+import 'package:management_debts_app/services/firebase_sevice.dart';
 import 'package:management_debts_app/widgets/report_state_card.dart';
+import 'package:management_debts_app/widgets/topDebt_orTole.dart';
+import 'package:provider/provider.dart';
 /// فلتر الفترة (اليوم/الأسبوع/الشهر) + كروت الإحصائيات + أعلى الحسابات مديونية
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
@@ -40,14 +45,14 @@ class _ReportsPageState extends State<ReportsPage> {
 
   @override
   Widget build(BuildContext context) {
-   //  final storeId = context.watch<CustomersProvider>().storeId;
+    final storeId = context.watch<CustomersProvider>().storeId;
     final range = _rangeFor(_period);
 
-   /* final topDebtors = context.watch<CustomersProvider>().customers
+    final topDebtors = context.watch<CustomersProvider>().customers
         .where((c) => c.balance > 0)
         .toList()
       ..sort((a, b) => b.balance.compareTo(a.balance));
-*/
+
     return Scaffold(
    appBar: AppBar(title: const Text('التقارير')),
 
@@ -74,17 +79,17 @@ class _ReportsPageState extends State<ReportsPage> {
 
                     // كل تغيير للفترة يشغّل استعلام تجميع جديد — قراءات معدودة فقط
           // بغض النظر عن عدد العمليات الفعلي، حتى لو كانت البقالة عندها آلاف العمليات.
-         /* FutureBuilder(
+          FutureBuilder(
             key: ValueKey(_period),
-            future: FirebaseService().getPeriodTotals(
+            future: FirebaseSevice().getPeriodTotals(
               storeId: storeId,
               start: range.start,
               end: range.end,
             ),
-            */
-           /* builder: (context, snapshot) {*/
-             // final totals = ;
-               GridView.count(
+            
+            builder: (context, snapshot) {
+              final totals = snapshot.data;
+             return  GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -98,7 +103,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     label: 'إجمالي المدفوعات (الفترة)',
                     value: totals == null
                         ? '...'
-                        : '${NumberFormat.decimalPattern('ar').format(15000)} ريال',
+                        : '${NumberFormat.decimalPattern('ar').format(totals.totalPayments)} ريال',
                   ),
                   ReportStatCard(
                     icon: Icons.trending_up,
@@ -106,25 +111,27 @@ class _ReportsPageState extends State<ReportsPage> {
                     label: 'إجمالي الديون (الفترة)',
                     value: totals == null
                         ? '...'
-                        : '${NumberFormat.decimalPattern('ar').format(/*totals.totalDebtAdded*/350000)} ريال',
+                        : '${NumberFormat.decimalPattern('ar').format(totals.totalDebtAdded)} ريال',
                   ),
                   ReportStatCard(
                     icon: Icons.people_outline,
                     iconColor: AppColors.primary,
                     label: 'عدد الزبائن المدينين',
-                    value: '${/*topDebtors.length*/100}',
+                    value: '${topDebtors.length}',
                   ),
                   ReportStatCard(
                     icon: Icons.account_balance_wallet_outlined,
                     iconColor: AppColors.warning,
                     label: 'إجمالي المتبقي (الكل)',
                     value:
-                        '${NumberFormat.decimalPattern('ar').format(/*context.watch<CustomersProvider>().totalOwed*/16000)} ريال',
+                        '${NumberFormat.decimalPattern('ar').format(context.watch<CustomersProvider>().totalOwed)} ريال',
                   ),
                 ],
-              ),
-           /* },*/
-         /* ),*/
+              );
+      
+            },
+            
+          ),
          
           const SizedBox(height: 24),
           const Row(
@@ -137,7 +144,7 @@ class _ReportsPageState extends State<ReportsPage> {
           ),
           const SizedBox(height: 10),
 
-            if (totals!=null)
+            if (topDebtors.isEmpty)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 30),
               decoration: BoxDecoration(
@@ -151,8 +158,8 @@ class _ReportsPageState extends State<ReportsPage> {
                 ),
               ),
             )
-          //else
-           // ...topDebtors.take(5).map((c) => _TopDebtorTile(customer: c)),
+          else
+            ...topDebtors.take(5).map((c) => TopDebtorTile(customer: c))
         ],
       ),
     );

@@ -5,6 +5,7 @@ import 'package:management_debts_app/views/auth/register_view.dart';
 import 'package:management_debts_app/views/customers/customer_Details_view.dart';
 import 'package:management_debts_app/views/customers/customers_view.dart';
 import 'package:management_debts_app/views/home/home_view.dart';
+import 'package:management_debts_app/views/reports/reports_view.dart';
 import 'package:management_debts_app/views/settings/auth_wrapper.dart';
 import 'package:management_debts_app/views/settings/setting_page.dart';
 
@@ -32,14 +33,21 @@ class AppRoutes {
    case home:
    return MaterialPageRoute(builder: (_)=> const HomePage());
     case addTransaction:
-   return MaterialPageRoute(builder: (_)=> const AddtransactionPage());
+     final args=setting.arguments as Map<String,dynamic>?;
+   return MaterialPageRoute(
+    builder: (_)=>  AddtransactionPage(
+       initialCustomerId: args?['customerId'],
+            initialType: args?['type'],
+    ),
+    fullscreenDialog: true,
+    );
     case customerDetails:
     final customerId=setting.arguments as String;
    return MaterialPageRoute(builder: (_)=>  CustomerDetailsPage(customerId: customerId,));
    case customers:
    return MaterialPageRoute(builder: (_)=> const CustomersPage());
     case reports:
-    return MaterialPageRoute(builder: (_)=> const CustomersPage());
+    return MaterialPageRoute(builder: (_)=> const ReportsPage());
     case settings:
    return MaterialPageRoute(builder: (_)=> const SettingPage());
    case splash:
