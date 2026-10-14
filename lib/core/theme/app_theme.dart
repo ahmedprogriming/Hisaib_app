@@ -45,6 +45,19 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.border),
         ),
       ),
+       navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.transparent,
+        indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+        elevation: 0,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return TextStyle(
+            fontSize: 11,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            color: selected ? AppColors.primary : AppColors.textSecondary,
+          );
+        }),
+      ),
     );
   }
 }

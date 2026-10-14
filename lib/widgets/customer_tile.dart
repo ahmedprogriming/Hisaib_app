@@ -24,47 +24,49 @@ class CustomerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = _statusStyle();
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+    
+      child: Material(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: ListTile(
-        onTap: () => Navigator.pushNamed(
-          context,
-          AppRoutes.customerDetails,
-          arguments: customer.id,
-        ),
-        leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-          child: Text(
-            customer.name.isNotEmpty ? customer.name[0] : '؟',
-            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+    borderRadius: BorderRadius.circular(14),
+    clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: () => Navigator.pushNamed(
+            context,
+            AppRoutes.customerDetails,
+            arguments: customer.id,
           ),
-        ),
-        title: Text(customer.name, style: const TextStyle(fontWeight: FontWeight.w500)),
-        subtitle: customer.phone.isNotEmpty
-            ? Text(customer.phone,/* textDirection: TextDirection.ltr*/ textAlign: TextAlign.right)
-            : null,
-        trailing: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: style.bg,
-                borderRadius: BorderRadius.circular(8),
+          leading: CircleAvatar(
+            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+            child: Text(
+              customer.name.isNotEmpty ? customer.name[0] : '؟',
+              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+            ),
+          ),
+          title: Text(customer.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+          subtitle: customer.phone.isNotEmpty
+              ? Text(customer.phone,/* textDirection: TextDirection.ltr*/ textAlign: TextAlign.right)
+              : null,
+          trailing: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: style.bg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(style.label, style: TextStyle(color: style.fg, fontSize: 11)),
               ),
-              child: Text(style.label, style: TextStyle(color: style.fg, fontSize: 11)),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${NumberFormat.decimalPattern('ar').format(customer.balance)} ريال',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                '${NumberFormat.decimalPattern('ar').format(customer.balance)} ريال',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            ],
+          ),
         ),
       ),
     );

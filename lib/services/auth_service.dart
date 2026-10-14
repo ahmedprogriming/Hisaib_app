@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:management_debts_app/core/constants/app_constsnt.dart';
 
 class AuthService {
 
@@ -7,7 +8,8 @@ class AuthService {
    User? get currentUser => _auth.currentUser;
   String? get currentStoreId => _auth.currentUser?.uid;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-
+  bool get isAdmin =>
+      _auth.currentUser?.email?.toLowerCase() == AppConstants.adminEmail;
   Future<UserCredential> signUp({
     required String email,
     required String password,

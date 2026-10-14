@@ -1,11 +1,11 @@
-class AppConstants 
-{
- static const String appName = 'حسابي';
+class AppConstants {
+  static const String appName = 'حسابي';
 
-   // رقم واتساب الدعم — يظهر لصاحب البقالة عند انتهاء اشتراكه لتجديده يدوياً.
+  // رقم واتساب الدعم — يظهر لصاحب البقالة عند انتهاء اشتراكه لتجديده يدوياً.
 
   static const String supportWhatsappNumber = '+967780775168';
-
+  static const int maxOfflineDays = 7;
+  static const String adminEmail = 'ahmedjuid5@gmail.com';
   // أسماء الـ Collections في Firestore
   static const String storesCollection = 'stores';
   static const String customersSubCollection = 'customers';
@@ -19,5 +19,4 @@ class AppConstants
   static const String statusPaid = 'paid'; // مسدد
   static const String statusOwing = 'owing'; // عليه دين
   static const String statusOverdue = 'overdue'; // متأخر
-
 }

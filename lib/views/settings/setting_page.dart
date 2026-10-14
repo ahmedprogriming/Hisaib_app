@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
 import 'package:management_debts_app/providers/customers_provider.dart';
 import 'package:management_debts_app/routes/app_routes.dart';
@@ -13,7 +15,6 @@ import 'package:management_debts_app/widgets/custom_showscanr.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -25,12 +26,15 @@ class SettingPage extends StatefulWidget {
 class _SettingPageState extends State<SettingPage> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _debtLimitController = TextEditingController();
   String _currency = 'ريال يمني';
+  double debetNow = 0;
 
   bool _isSaving = false;
   bool _isExporting = false;
   bool _isImporting = false;
-  bool _loadedOnce = false; // نمنع إعادة تعبئة الحقول فوق تعديلات المستخدم الحالية
+  bool _loadedOnce =
+      false; // نمنع إعادة تعبئة الحقول فوق تعديلات المستخدم الحالية
 
   final _firebaseService = FirebaseSevice();
 
@@ -44,6 +48,21 @@ class _SettingPageState extends State<SettingPage> {
   Future<void> _handleSave(String storeId) async {
     setState(() => _isSaving = true);
     try {
+             // التحقق من وجود الإنترنت
+        final hasInternet =
+            await InternetConnection().hasInternetAccess;
+
+        if (!mounted) return;
+
+        if (!hasInternet) {
+          showSnackbar(
+            context,
+            'لا يوجد اتصال بالإنترنت، تحقق من اتصالك ثم حاول مرة أخرى',
+            type: SnackBarType.error,
+          );
+          return;
+        }
+
       await _firebaseService.updateStore(
         storeId: storeId,
         name: _nameController.text.trim(),
@@ -51,16 +70,22 @@ class _SettingPageState extends State<SettingPage> {
         currency: _currency,
       );
       if (!mounted) return;
-          showSnackbar(context, 'تم حفظ بيانات البقالة',type:SnackBarType.success);
-        
+      showSnackbar(
+        context,
+        'تم حفظ بيانات البقالة',
+        type: SnackBarType.success,
+      );
     } catch (e) {
       if (!mounted) return;
-      showSnackbar(context, 'تعذر الحفظ، تحقق من اتصالك بالإنترنت', type: SnackBarType.error);
+      showSnackbar(
+        context,
+        'تعذر الحفظ، تحقق من اتصالك بالإنترنت',
+        type: SnackBarType.error,
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
-
 
   Future<void> _handleBackup(String storeId) async {
     setState(() => _isExporting = true);
@@ -73,7 +98,8 @@ class _SettingPageState extends State<SettingPage> {
       }).convert(data);
 
       final tempDir = await getTemporaryDirectory();
-      final fileName = 'hisabi-backup-${DateTime.now().millisecondsSinceEpoch}.json';
+      final fileName =
+          'hisabi-backup-${DateTime.now().millisecondsSinceEpoch}.json';
       final file = File('${tempDir.path}/$fileName');
       await file.writeAsString(jsonString);
 
@@ -86,8 +112,11 @@ class _SettingPageState extends State<SettingPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      showSnackbar(context,'تعذر إنشاء النسخة الاحتياطية', type: SnackBarType.error);
-     
+      showSnackbar(
+        context,
+        'تعذر إنشاء النسخة الاحتياطية',
+        type: SnackBarType.error,
+      );
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -100,13 +129,16 @@ class _SettingPageState extends State<SettingPage> {
       builder: (_) => AlertDialog(
         title: const Text('استيراد نسخة احتياطية'),
         content: const Text(
-          'سيتم إضافة كل الزبائن والعمليات الموجودة في ملف النسخة الاحتياطية '
+          'سيتم إضافة كل العملاء والعمليات الموجودة في ملف النسخة الاحتياطية '
           'إلى بياناتك الحالية. العمليات المستوردة مسبقاً من قبل لن تتكرر '
           '(محمية تلقائياً)، لكن يُفضّل استخدام هذا فقط على بقالة فارغة أو '
           'نفس البقالة الأصلية لتفادي أي تعارض في البيانات.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('اختيار الملف والمتابعة'),
@@ -117,10 +149,10 @@ class _SettingPageState extends State<SettingPage> {
 
     if (proceed != true || !mounted) return;
 
-     final pickedFile = await FilePicker.pickFile(
-    type: FileType.custom,
-    allowedExtensions: ['json'],
-  );
+    final pickedFile = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
     if (pickedFile?.path == null) return;
 
     setState(() => _isImporting = true);
@@ -129,7 +161,10 @@ class _SettingPageState extends State<SettingPage> {
       final content = await file.readAsString();
       final data = jsonDecode(content) as Map<String, dynamic>;
 
-      final stats = await _firebaseService.importBackup(storeId: storeId, backupData: data);
+      final stats = await _firebaseService.importBackup(
+        storeId: storeId,
+        backupData: data,
+      );
 
       if (!mounted) return;
       await showDialog(
@@ -137,24 +172,30 @@ class _SettingPageState extends State<SettingPage> {
         builder: (_) => AlertDialog(
           title: const Text('اكتمل الاستيراد'),
           content: Text(
-            'تم استرجاع ${stats.customersRestored} زبون و${stats.transactionsRestored} عملية.'
+            'تم استرجاع ${stats.customersRestored} عميل و${stats.transactionsRestored} عملية.'
             '${stats.transactionsSkipped > 0 ? '\n(${stats.transactionsSkipped} عملية كانت مستوردة مسبقاً فتم تجاوزها)' : ''}',
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('حسناً')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('حسناً'),
+            ),
           ],
         ),
       );
     } catch (e) {
       if (!mounted) return;
-       showSnackbar(context,'تعذر قراءة الملف — تأكد أنه ملف نسخة احتياطية صحيح', type: SnackBarType.error);
-     
+      showSnackbar(
+        context,
+        'تعذر قراءة الملف — تأكد أنه ملف نسخة احتياطية صحيح',
+        type: SnackBarType.error,
+      );
     } finally {
       if (mounted) setState(() => _isImporting = false);
     }
   }
-  
-    Future<void> _handleLogout() async {
+
+  Future<void> _handleLogout() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -167,7 +208,10 @@ class _SettingPageState extends State<SettingPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('تسجيل الخروج', style: TextStyle(color: AppColors.danger)),
+            child: const Text(
+              'تسجيل الخروج',
+              style: TextStyle(color: AppColors.danger),
+            ),
           ),
         ],
       ),
@@ -179,107 +223,392 @@ class _SettingPageState extends State<SettingPage> {
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, AppRoutes.splash, (r) => false);
   }
-  
+
   @override
   Widget build(BuildContext context) {
-     final storeId = context.watch<CustomersProvider>().storeId;
+    final storeId = context.watch<CustomersProvider>().storeId;
+
+    final isAdmin = AuthService().isAdmin;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('الإعدادات'),),
-      body:StreamBuilder<DocumentSnapshot>(
-        stream: _firebaseService.watchStore( storeId),
+      appBar: AppBar(
+        title: const Text(
+          'إعدادات المتجر',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: AppColors.background,
+      ),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: _firebaseService.watchStore(storeId),
         builder: (context, snapshot) {
-            final data = snapshot.data?.data() as Map<String, dynamic>?;
-         // نعبّي الحقول أول مرة فقط، حتى ما نمسح تعديل المستخدم
+          final data = snapshot.data?.data() as Map<String, dynamic>?;
+          // نعبّي الحقول أول مرة فقط، حتى ما نمسح تعديل المستخدم
           // لو وصل تحديث جديد من الـ Stream وهو لسه يكتب.
           if (data != null && !_loadedOnce) {
             _nameController.text = data['name'] ?? '';
             _phoneController.text = data['phone'] ?? '';
             _currency = data['currency'] ?? 'ريال يمني';
+            debetNow =
+                double.tryParse(data['debtLimit']?.toString() ?? '') ?? 0.0;
+
+            _debtLimitController.text = debetNow.toString();
             _loadedOnce = true;
           }
-        
+
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text('بيانات البقالة',
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'اسم البقالة'),
+              // قسم معلومات المتجر
+              _buildSectionHeader(
+                'معلومات المتجر الأساسية',
+                Icons.storefront_rounded,
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(
-                  labelText: 'رقم الهاتف',
-                  helperText: 'يظهر في كشوف الحساب — يُفضل مع رمز الدولة',
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: _cardDecoration(),
+                child: Column(
+                  children: [
+                    _buildTextField(
+                      _nameController,
+                      'اسم المتجر',
+                      Icons.badge_outlined,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildTextField(
+                      _phoneController,
+                      'رقم الهاتف',
+                      Icons.phone_outlined,
+                      isPhone: true,
+                    ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String>(
+                      initialValue: _currency,
+                      decoration: _inputDecoration(
+                        'العملة',
+                        Icons.monetization_on_outlined,
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'ريال يمني',
+                          child: Text('ريال يمني'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'ريال سعودي',
+                          child: Text('ريال سعودي'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'دولار أمريكي',
+                          child: Text('دولار أمريكي'),
+                        ),
+                      ],
+                      onChanged: (v) =>
+                          setState(() => _currency = v ?? _currency),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: (_isSaving || storeId.isEmpty)
+                            ? null
+                            : () => _handleSave(storeId),
+                        style: _primaryButtonStyle(),
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'حفظ التعديلات',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _currency,
-                decoration: const InputDecoration(labelText: 'العملة'),
-                items: const [
-                  DropdownMenuItem(value: 'ريال يمني', child: Text('ريال يمني')),
-                  DropdownMenuItem(value: 'ريال سعودي', child: Text('ريال سعودي')),
-                  DropdownMenuItem(value: 'دولار أمريكي', child: Text('دولار أمريكي')),
-                ],
-                onChanged: (v) => setState(() => _currency = v ?? _currency),
+              const SizedBox(height: 24),
+              // قسم تنبيهات الديون
+              _buildSectionHeader(
+                'نظام تنبيهات الديون',
+                Icons.notification_important_rounded,
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: (_isSaving || storeId.isEmpty) ? null : () => _handleSave(storeId),
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('حفظ البيانات'),
-              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: _cardDecoration(),
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _debtLimitController,
 
-              const Divider(height: 40),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration:
+                          _inputDecoration(
+                            'الحد الأقصى للدين (ريال)',
+                            Icons.warning_amber_rounded,
+                          ).copyWith(
+                            helperText:
+                                'سيصلك تنبيه إذا تجاوز دين أي عميل هذا المبلغ',
+                            helperMaxLines: 2,
+                          ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: storeId.isEmpty
+                            ? null
+                            : () async {
+                                // التحقق من وجود الإنترنت
+                                final hasInternet = await InternetConnection()
+                                    .hasInternetAccess;
 
-              ListTile(
-                leading: const Icon(Icons.cloud_upload_outlined),
-                title: const Text('تصدير نسخة احتياطية'),
-                subtitle: const Text('احفظ بيانات بقالتك واسترجعها في أي وقت'),
-                trailing: _isExporting
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.chevron_left),
-                onTap: _isExporting ? null : () => _handleBackup(storeId),
-              ),
-              ListTile(
-                leading: const Icon(Icons.cloud_download_outlined),
-                title: const Text('استيراد نسخة احتياطية'),
-                subtitle: const Text('استرجاع بيانات من ملف نسخة احتياطية سابقة'),
-                trailing: _isImporting
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.chevron_left),
-                onTap: _isImporting ? null : () => _handleRestore(storeId),
-              ),
+                                if (!mounted) return;
 
-              const Divider(height: 40),
-              ListTile(
-                leading: const Icon(Icons.logout, color: AppColors.danger),
-                title: const Text('تسجيل الخروج', style: TextStyle(color: AppColors.danger)),
-                onTap: _handleLogout,
+                                if (!hasInternet) {
+                                  showSnackbar(
+                                    context,
+                                    'لا يوجد اتصال بالإنترنت، تحقق من اتصالك ثم حاول مرة أخرى',
+                                    type: SnackBarType.error,
+                                  );
+                                  return;
+                                }
+                                final value = double.tryParse(
+                                  _debtLimitController.text.trim(),
+                                );
+                                if (value == null || value < 0) {
+                                  showSnackbar(
+                                    context,
+                                    'الرجاء إدخال مبلغ صحيح',
+                                    type: SnackBarType.error,
+                                  );
+                                  return;
+                                }
+                                await _firebaseService.saveDebtLimit(
+                                  storeId,
+                                  value,
+                                );
+                                if (mounted) {
+                                  showSnackbar(
+                                    context,
+                                    'تم ضبط الحد الأقصى بنجاح',
+                                    type: SnackBarType.success,
+                                  );
+                                }
+                              },
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'تفعيل التنبيهات',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(height: 24),
+
+              // قسم النسخ الاحتياطي
+              _buildSectionHeader('النسخ الاحتياطي', Icons.cloud_sync_rounded),
+              Container(
+                decoration: _cardDecoration(),
+                clipBehavior: Clip.antiAlias,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    children: [
+                      _buildSettingsTile(
+                        title: 'تصدير نسخة احتياطية',
+                        subtitle: 'حفظ جميع بيانات عملائك في ملف',
+                        icon: Icons.cloud_upload_rounded,
+                        iconColor: AppColors.primary,
+                        isLoading: _isExporting,
+                        onTap: _isExporting
+                            ? null
+                            : () => _handleBackup(storeId),
+                      ),
+                      const Divider(height: 1, indent: 60),
+                      _buildSettingsTile(
+                        title: 'استعادة نسخة احتياطية',
+                        subtitle: 'استرجاع البيانات من ملف محفوظ سابقاً',
+                        icon: Icons.cloud_download_rounded,
+                        iconColor: AppColors.success,
+                        isLoading: _isImporting,
+                        onTap: _isImporting
+                            ? null
+                            : () => _handleRestore(storeId),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // لوحة تحكم الإدمن وتسجيل الخروج
+              Container(
+                decoration: _cardDecoration(),
+                child: Column(
+                  children: [
+                    if (isAdmin) ...[
+                      Material(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        clipBehavior: Clip.antiAlias,
+                        child: _buildSettingsTile(
+                          title: 'إدارة الاشتراكات (Admin)',
+                          subtitle: 'لوحة التحكم بصلاحيات المتاجر',
+                          icon: Icons.admin_panel_settings_rounded,
+                          iconColor: Colors.deepPurple,
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            AppRoutes.adminPanel,
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 60),
+                    ],
+                    _buildSettingsTile(
+                      title: 'تسجيل خروج',
+                      subtitle: 'الخروج من الحساب الحالي بأمان',
+                      icon: Icons.logout_rounded,
+                      iconColor: AppColors.danger,
+                      onTap: _handleLogout,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 40),
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, right: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.textSecondary),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  BoxDecoration _cardDecoration() {
+    return BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: AppColors.textSecondary.withValues(alpha: 0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: AppColors.textSecondary),
+      filled: true,
+      fillColor: AppColors.background,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    bool isPhone = false,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
+      textDirection: isPhone ? TextDirection.ltr : null,
+      decoration: _inputDecoration(label, icon),
+    );
+  }
+
+  ButtonStyle _primaryButtonStyle() {
+    return ElevatedButton.styleFrom(
+      backgroundColor: AppColors.primary,
+      elevation: 2,
+      shadowColor: AppColors.primary.withValues(alpha: 0.3),
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  Widget _buildSettingsTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required VoidCallback? onTap,
+    bool isLoading = false,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: iconColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: iconColor, size: 22),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+      ),
+      trailing: isLoading
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
+      onTap: onTap,
     );
   }
 }

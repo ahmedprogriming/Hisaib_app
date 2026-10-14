@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:management_debts_app/views/addTransaction/addTransaction_view.dart';
+import 'package:management_debts_app/views/auth/admin_subscriptions_view.dart';
 import 'package:management_debts_app/views/auth/login_view.dart';
 import 'package:management_debts_app/views/auth/register_view.dart';
 import 'package:management_debts_app/views/customers/customer_Details_view.dart';
 import 'package:management_debts_app/views/customers/customers_view.dart';
-import 'package:management_debts_app/views/home/home_view.dart';
+import 'package:management_debts_app/views/main_shell.dart';
+import 'package:management_debts_app/views/notfication/notificationsview.dart';
 import 'package:management_debts_app/views/reports/reports_view.dart';
 import 'package:management_debts_app/views/settings/auth_wrapper.dart';
 import 'package:management_debts_app/views/settings/setting_page.dart';
@@ -21,6 +23,8 @@ class AppRoutes {
   static const String customers='/customer';
  static const String reports='/reports';
   static const String settings='/settings';
+  static const String notification='/notfication';
+  static const String adminPanel='/admin';
 
   static Route<dynamic> onGenerateRoute(RouteSettings setting)
   {
@@ -31,7 +35,7 @@ class AppRoutes {
    case register:
    return MaterialPageRoute(builder: (_)=> const RagisterPage());
    case home:
-   return MaterialPageRoute(builder: (_)=> const HomePage());
+   return MaterialPageRoute(builder: (_)=> const MainShell());
     case addTransaction:
      final args=setting.arguments as Map<String,dynamic>?;
    return MaterialPageRoute(
@@ -52,6 +56,10 @@ class AppRoutes {
    return MaterialPageRoute(builder: (_)=> const SettingPage());
    case splash:
    return MaterialPageRoute(builder: (_)=> const AuthWrapper());
+    case notification:
+   return MaterialPageRoute(builder: (_)=> const NotificationsPage());
+    case adminPanel:
+   return MaterialPageRoute(builder: (_)=> const AdminSubscriptionsPage());
     default:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(

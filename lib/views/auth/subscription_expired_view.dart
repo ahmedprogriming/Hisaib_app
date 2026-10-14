@@ -8,15 +8,34 @@ import 'package:intl/intl.dart';
 
 class SubscriptionExpiredPage extends StatelessWidget {
     final DateTime? subscriptionEndsAt;
-  final bool isDeactivated; // true لو صاحب البقالة عطّل الحساب يدوياً (من لوحتك الإدارية)
-  const SubscriptionExpiredPage({super.key,  this.isDeactivated=false, this.subscriptionEndsAt});
+  final bool isDeactivated;
+final String? storeName;
+  final String? storePhone;
+  const SubscriptionExpiredPage({super.key,  this.isDeactivated=false, this.subscriptionEndsAt, this.storeName, this.storePhone});
 
 
 
   Future<void> _openWhatsapp() async {
+  
+    final name = storeName ?? 'النتجر غير معروف';
+    final phoneNum = storePhone ?? 'رقم الهاتف غير متوفر';
+
+final statusText = isDeactivated 
+        ? 'تم تعطيل الحساب' 
+        : 'انتهت فترة الاشتراك';
+    final dateText = (subscriptionEndsAt != null && !isDeactivated)
+        ? ' (تاريخ الانتهاء: ${DateFormat('yyyy/MM/dd').format(subscriptionEndsAt!)})'
+        : '';
+
+    final message = '''
+السلام عليكم، أود تجديد الاشتراك / تفعيل الحساب في تطبيق إدارة الديون.
+- المتجر: ${name.isNotEmpty ? name : 'غير محدد'}
+- رقم المتجر: ${phoneNum.isNotEmpty ? phoneNum : 'غير محدد'}
+- الحالة: $statusText$dateText
+'''.trim();
     final phone = AppConstants.supportWhatsappNumber.replaceAll('+', '');
     final uri = Uri.parse(
-      'https://wa.me/$phone?text=${Uri.encodeComponent('مرحباً، أريد تجديد اشتراك بقالتي في تطبيق حسابي')}',
+      'https://wa.me/$phone?text=${Uri.encodeComponent(message)}',
     );
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
@@ -63,7 +82,7 @@ class SubscriptionExpiredPage extends StatelessWidget {
                   ),
                 const SizedBox(height: 12),
                 const Text(
-                  'بياناتك محفوظة بالكامل ولن تُحذف. تواصل معنا لتجديد اشتراكك\nواستمرار استخدام التطبيق.',
+            'لاستئناف استخدام التطبيق وفتح البيانات، يُرجى التواصل مع فريق الدعم لتجديد أو تفعيل الاشتراك.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.6),
                 ),

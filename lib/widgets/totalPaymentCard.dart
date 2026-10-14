@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
@@ -11,10 +12,12 @@ class TotalPaymentsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<double>(
-      future: FirebaseSevice().getTotalPayments(storeId),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseSevice().watchStore(storeId),
 builder: (context, snapshot) {
-        final value = snapshot.data;
+  final data=snapshot.data?.data() as Map<String,dynamic>?;
+  final value = (data?['totalPayments'] as num?)?.toDouble();
+      
         return StatCard(
           icon: Icons.credit_card,
           iconColor: AppColors.success,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
 
-
 class CustomCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -22,10 +21,10 @@ class CustomCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border.withOpacity(0.8)),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.8)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -73,7 +72,11 @@ class CustomCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondary, size: 16),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: AppColors.textSecondary,
+                  size: 16,
+                ),
               ],
             ),
           ),

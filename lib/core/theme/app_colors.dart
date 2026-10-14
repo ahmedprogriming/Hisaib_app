@@ -5,6 +5,15 @@ class AppColors {
 
   // الألوان الأساسية
   static const Color primary = Color(0xFF0CA7B9); // الفيروزي (Teal) الأساسي من الشعار
+  static const Color primaryLight = Color(0xFF1EC7DB); // الدرجة الفاتحة بأعلى تدرّج الشعار
+  static const Color primaryDark = Color(0xFF087885); // الدرجة الغامقة بأسفل تدرّج الشعار
+
+  // تدرّج لوني مطابق لاتجاه تدرّج الشعار نفسه (فاتح بالأعلى، غامق بالأسفل)
+  static const LinearGradient primaryGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [primaryLight, primaryDark],
+  );
   static const Color background = Color(0xFFF0F7F8); // خلفية فاتحة جداً مائلة للزرقة
   static const Color surface = Color(0xFFFFFFFF); // أبيض نقي للكروت
 

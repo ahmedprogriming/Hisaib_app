@@ -1,4 +1,3 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
@@ -54,20 +53,43 @@ class _ReportsPageState extends State<ReportsPage> {
       ..sort((a, b) => b.balance.compareTo(a.balance));
 
     return Scaffold(
-   appBar: AppBar(title: const Text('التقارير')),
+      backgroundColor: AppColors.background,
+  appBar: AppBar(
+        title: const Text(
+          'التقارير المالية',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: AppColors.background,
+      ),
 
       body: ListView(
-        padding: const EdgeInsets.all(16),
+       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         children: [
-               SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'day', label: Text('اليوم')),
-              ButtonSegment(value: 'week', label: Text('هذا الأسبوع')),
-              ButtonSegment(value: 'month', label: Text('هذا الشهر')),
-            ],
-            selected: {_period},
-            onSelectionChanged: (s) => setState(() => _period = s.first),
+       // 1. شريط تبديل الفترات
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.textSecondary.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                _buildPeriodTab('day', 'اليوم'),
+                _buildPeriodTab('week', 'هذا الأسبوع'),
+                _buildPeriodTab('month', 'هذا الشهر'),
+              ],
+            ),
           ),
+          const SizedBox(height: 12),
           const SizedBox(height: 4),
               Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -77,10 +99,8 @@ class _ReportsPageState extends State<ReportsPage> {
             ),
           ),
 
-                    // كل تغيير للفترة يشغّل استعلام تجميع جديد — قراءات معدودة فقط
-          // بغض النظر عن عدد العمليات الفعلي، حتى لو كانت البقالة عندها آلاف العمليات.
-          FutureBuilder(
-            key: ValueKey(_period),
+                  FutureBuilder(
+            key: ValueKey('$_period-$storeId'),
             future: FirebaseSevice().getPeriodTotals(
               storeId: storeId,
               start: range.start,
@@ -88,41 +108,82 @@ class _ReportsPageState extends State<ReportsPage> {
             ),
             
             builder: (context, snapshot) {
-              final totals = snapshot.data;
+              
+            
+                     if (snapshot.hasError) {
+
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded, color: AppColors.danger),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'حدث خطأ أثناء تحميل البيانات, يرجى المحاولة لاحقاً.تأكد من اتصالك بالإنترنت.',
+                              style: TextStyle(color: AppColors.danger, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                    
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: TextButton.icon(
+                          onPressed: () => setState(() {}),
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('إعادة المحاولة'),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+                final totals = snapshot.data;
+                final isLoading = snapshot.connectionState == ConnectionState.waiting;
              return  GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.5,
+               mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 1.35,
                 children: [
                   ReportStatCard(
-                    icon: Icons.trending_down,
+                    icon: Icons.trending_down_rounded,
                     iconColor: AppColors.success,
-                    label: 'إجمالي المدفوعات (الفترة)',
-                    value: totals == null
-                        ? '...'
-                        : '${NumberFormat.decimalPattern('ar').format(totals.totalPayments)} ريال',
+                    label: 'إجمالي المقبوضات',
+                    value: isLoading
+                       ? 'جاري التحميل...'
+                        : '${NumberFormat.decimalPattern('ar').format(totals?.totalPayments ?? 0)} ريال',
                   ),
                   ReportStatCard(
-                    icon: Icons.trending_up,
+                   icon: Icons.trending_up_rounded,
                     iconColor: AppColors.danger,
-                    label: 'إجمالي الديون (الفترة)',
-                    value: totals == null
-                        ? '...'
-                        : '${NumberFormat.decimalPattern('ar').format(totals.totalDebtAdded)} ريال',
+                   label: 'إجمالي الديون الجديدة',
+                    value: isLoading
+                        ? 'جاري التحميل...'
+                        : '${NumberFormat.decimalPattern('ar').format(totals?.totalDebtAdded ?? 0)} ريال',
                   ),
                   ReportStatCard(
-                    icon: Icons.people_outline,
+                   icon: Icons.people_outline_rounded,
                     iconColor: AppColors.primary,
-                    label: 'عدد الزبائن المدينين',
-                    value: '${topDebtors.length}',
+                    label: 'المدينون الحاليون',
+                    value: '${topDebtors.length} عميل',
                   ),
                   ReportStatCard(
-                    icon: Icons.account_balance_wallet_outlined,
-                    iconColor: AppColors.warning,
-                    label: 'إجمالي المتبقي (الكل)',
+                  icon: Icons.account_balance_wallet_outlined,
+                    iconColor: const Color(0xFFE65100),
+                    label: 'إجمالي ديون السوق',
                     value:
                         '${NumberFormat.decimalPattern('ar').format(context.watch<CustomersProvider>().totalOwed)} ريال',
                   ),
@@ -133,34 +194,93 @@ class _ReportsPageState extends State<ReportsPage> {
             
           ),
          
-          const SizedBox(height: 24),
-          const Row(
+ const SizedBox(height: 32),
+         // 3. قسم أعلى المدينين
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('🏆', style: TextStyle(fontSize: 16)),
-              SizedBox(width: 6),
-              Text('أعلى الحسابات مديونية',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+              const Text(
+                'أعلى العملاء مديونية',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.12)),
+                ),
+                child: Text(
+                  'أعلى ${topDebtors.take(5).length}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
 
             if (topDebtors.isEmpty)
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 30),
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.08)),
               ),
-              child: const Center(
-                child: Text(
-                  'لا توجد ديون حالية — كل الحسابات مسدّدة 🎉',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline_rounded,
+                    size: 44,
+                    color: AppColors.success.withValues(alpha:0.7),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'لا توجد ديون مسجلة',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'جميع الحسابات والعملاء مسددة بالكامل!',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  ),
+                ],
               ),
             )
           else
-            ...topDebtors.take(5).map((c) => TopDebtorTile(customer: c))
+            ...topDebtors.take(5).map((c) => TopDebtorTile(customer: c)),
+          const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodTab(String key, String title) {
+    final isSelected = _period == key;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _period = key),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? Colors.white : AppColors.textSecondary,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ),
       ),
     );
   }

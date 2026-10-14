@@ -49,7 +49,7 @@ class _LoginPageState extends State {
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(
         context,
-        AppRoutes.home,
+        AppRoutes.splash,
         (route) => false,
       );
     } on FirebaseAuthException catch (e) {
@@ -163,25 +163,6 @@ class _LoginPageState extends State {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // تم إضافة ودجت لعرض رسالة الخطأ هنا إن وجدت
-                          if (_errorMessage != null) ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                _errorMessage!,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
 
                           TextFormField(
                             controller: _emailController,
@@ -202,6 +183,8 @@ class _LoginPageState extends State {
                           const SizedBox(height: 14),
                           TextFormField(
                             controller: _passwordController,
+                             keyboardType: TextInputType.visiblePassword,
+                             textDirection: TextDirection.ltr,
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
                               labelText: 'كلمة المرور',

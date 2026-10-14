@@ -5,9 +5,8 @@ import 'package:management_debts_app/core/constants/app_constsnt.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
 import 'package:management_debts_app/routes/app_routes.dart';
 import 'package:management_debts_app/services/auth_service.dart';
-import 'package:management_debts_app/widgets/custom_buttton.dart';
 import 'package:management_debts_app/widgets/custom_showscanr.dart';
-import 'package:management_debts_app/widgets/text_fileid.dart';
+
 
 class RagisterPage extends StatefulWidget {
   const RagisterPage({super.key});
@@ -19,7 +18,7 @@ class RagisterPage extends StatefulWidget {
 }
 
 class _RagisterPageState extends State<RagisterPage> {
-  static const int _trialDays = 14;
+  static const int _trialDays = 10;
   final _formKey = GlobalKey<FormState>();
   final _storeNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -29,7 +28,7 @@ class _RagisterPageState extends State<RagisterPage> {
   String _currency = 'ريال يمني';
   bool _isLoading = false;
   String? _errorMessage;
- bool _obscurePassword = true;
+  bool _obscurePassword = true;
   final _authService = AuthService();
 
   @override
@@ -69,10 +68,10 @@ class _RagisterPageState extends State<RagisterPage> {
             'currency': _currency,
             'createdAt': now,
             'subscriptionStartedAt': now,
-            'subscriptionEndsAt': now.add(
-              const Duration(days: /*_trialDays*/ 2),
-            ),
+            'subscriptionEndsAt': now.add(const Duration(days: _trialDays)),
             'isActive': true,
+            'totalPayments': 0,
+            'lastSyncAt': now,
           });
 
       if (!mounted) return;
@@ -83,7 +82,7 @@ class _RagisterPageState extends State<RagisterPage> {
         builder: (_) => AlertDialog(
           title: const Text('تم إنشاء حسابك'),
           content: Text(
-            'بقالتك جاهزة! لديك اشتراك تجريبي مجاني لمدة $_trialDays يوماً.',
+            'متجرك جاهز! لديك اشتراك تجريبي مجاني لمدة $_trialDays يوماً.',
           ),
           actions: [
             TextButton(
@@ -95,24 +94,19 @@ class _RagisterPageState extends State<RagisterPage> {
       );
 
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (r) => false);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.splash,
+        (r) => false,
+      );
     } on FirebaseAuthException catch (e) {
       setState(() => _errorMessage = _mapAuthError(e.code));
-     showSnackbar(
-       context,
-           _errorMessage!,
-        type: SnackBarType.error,
-      );
-      
+      showSnackbar(context, _errorMessage!, type: SnackBarType.error);
     } catch (_) {
       setState(
         () => _errorMessage = 'تعذر إنشاء الحساب، تحقق من اتصالك بالإنترنت',
       );
-      showSnackbar(
-        context,
-        _errorMessage!,
-        type: SnackBarType.error,
-      );
+      showSnackbar(context, _errorMessage!, type: SnackBarType.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -157,7 +151,9 @@ class _RagisterPageState extends State<RagisterPage> {
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withOpacity(0.25),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.25,
+                                ),
                                 blurRadius: 24,
                                 offset: const Offset(0, 10),
                               ),
@@ -177,7 +173,7 @@ class _RagisterPageState extends State<RagisterPage> {
                       const SizedBox(height: 20),
 
                       const Text(
-                        "بقالة جديدة",
+                        "متجر جديد",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 26,
@@ -257,11 +253,11 @@ class _RagisterPageState extends State<RagisterPage> {
                             TextFormField(
                               controller: _storeNameController,
                               decoration: const InputDecoration(
-                                labelText: 'اسم البقالة *',
+                                labelText: 'اسم المتجر *',
                                 prefixIcon: Icon(Icons.storefront_outlined),
                               ),
                               validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'أدخل اسم البقالة'
+                                  ? 'أدخل اسم المتجر'
                                   : null,
                             ),
                             const SizedBox(height: 14),
@@ -271,7 +267,8 @@ class _RagisterPageState extends State<RagisterPage> {
                               textDirection: TextDirection.ltr,
                               decoration: const InputDecoration(
                                 labelText: 'رقم الهاتف *',
-                                hintText: '+967 780 775 168',
+                                hintText: '775 168 770',
+
                                 prefixIcon: Icon(Icons.phone_outlined),
                               ),
                               validator: (v) =>
@@ -310,13 +307,18 @@ class _RagisterPageState extends State<RagisterPage> {
                               textDirection: TextDirection.ltr,
                               decoration: const InputDecoration(
                                 labelText: 'البريد الإلكتروني *',
+                                 helperText: 'مثال: example@gmail.com',
                                 prefixIcon: Icon(Icons.mail_outline),
                               ),
                               validator: (v) {
-                                if (v == null || v.trim().isEmpty)
+                                if (v == null || v.trim().isEmpty) {
                                   return 'أدخل البريد الإلكتروني';
-                                if (!v.contains('@'))
+                                }
+
+                                if (!v.contains('@')) {
                                   return 'صيغة البريد غير صحيحة';
+                                }
+
                                 return null;
                               },
                             ),
@@ -324,22 +326,30 @@ class _RagisterPageState extends State<RagisterPage> {
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
-                              decoration:  InputDecoration(
+                              textDirection: TextDirection.ltr,
+                              decoration: InputDecoration(
                                 labelText: 'كلمة المرور *',
                                 prefixIcon: Icon(Icons.lock_outline),
-                                  suffixIcon: IconButton(
-                                icon: Icon(_obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined),
-                                onPressed: () => setState(
-                                    () => _obscurePassword = !_obscurePassword),
-                              ),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                ),
                               ),
                               validator: (v) {
-                                if (v == null || v.isEmpty)
+                                if (v == null || v.isEmpty) {
                                   return 'أدخل كلمة المرور';
-                                if (v.length < 6)
+                                }
+
+                                if (v.length < 6) {
                                   return 'كلمة المرور 6 أحرف على الأقل';
+                                }
+
                                 return null;
                               },
                               onFieldSubmitted: (_) => _handleRegister(),

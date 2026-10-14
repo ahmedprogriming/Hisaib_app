@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:management_debts_app/core/theme/app_colors.dart';
 import 'package:management_debts_app/models/customer_model.dart';
@@ -17,33 +16,69 @@ class RecentCustomerTile extends StatelessWidget {
       child: Material(
         color: AppColors.surface, // لون الخلفية هنا
         borderRadius: BorderRadius.circular(14), // الحواف الدائرية هنا
-        clipBehavior: Clip.antiAlias, // لضمان عدم خروج تأثير الضغط عن الحواف الدائرية
+        clipBehavior:
+            Clip.antiAlias, // لضمان عدم خروج تأثير الضغط عن الحواف الدائرية
         child: ListTile(
           onTap: () => Navigator.pushNamed(
-            context, 
+            context,
             AppRoutes.customerDetails,
             arguments: customer.id,
           ),
-          leading: CircleAvatar(
-            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-            child: Text(
-              customer.name.isNotEmpty ? customer.name[0] : '؟',
-              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+
+            child: Center(
+              child: Text(
+                customer.name.isNotEmpty ? customer.name[0] : '؟',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
             ),
           ),
-          title: Text(customer.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+          title: Text(
+            customer.name,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              isPaid ? 'مسدد بالكامل' : 'المتبقي عليه',
+              style: TextStyle(
+                fontSize: 12,
+                color: isPaid
+                    ? AppColors.success.withValues(alpha: 0.8)
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ),
           trailing: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(isPaid ? 'مسدد' : 'المتبقي عليه',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               Text(
-                '${NumberFormat.decimalPattern('ar').format(customer.balance)} ريال',
+                '${NumberFormat.decimalPattern('ar').format(customer.balance)}',
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                   color: isPaid ? AppColors.success : AppColors.danger,
                 ),
+              ),
+              const SizedBox(height: 2),
+              const Text(
+                'ريال',
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
               ),
             ],
           ),

@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:management_debts_app/core/constants/app_constsnt.dart';
 
 /// طبقة الوصول لـ Firestore — كل الاستعلامات هنا "مقيّدة" بـ storeId
@@ -17,23 +20,22 @@ class FirebaseSevice {
   DocumentReference storeDoc(String storeId) =>
       _db.collection(AppConstants.storesCollection).doc(storeId);
 
-  Stream<DocumentSnapshot> watchStore(String storeId) =>
-      storeDoc(storeId).snapshots();
+  Stream<DocumentSnapshot> watchStore(String storeId) {
+    if (storeId.isEmpty) return const Stream.empty();
+    return storeDoc(storeId).snapshots();
+  }
 
-        Future<void> updateStore({
+  Future<void> updateStore({
     required String storeId,
     required String name,
     required String phone,
     required String currency,
   }) {
-    return storeDoc(storeId).update({
-      'name': name,
-      'phone': phone,
-      'currency': currency,
-    });
+    return storeDoc(
+      storeId,
+    ).update({'name': name, 'phone': phone, 'currency': currency});
   }
 
-  
   /// تعديل اسم/هاتف الزبون فقط — لا يمس الرصيد أو سجل العمليات إطلاقاً
   Future<void> updateCustomer({
     required String storeId,
@@ -41,25 +43,26 @@ class FirebaseSevice {
     required String name,
     required String phone,
   }) {
-    return customersRef(storeId).doc(customerId).update({
-      'name': name,
-      'phone': phone,
-    });
+    return customersRef(
+      storeId,
+    ).doc(customerId).update({'name': name, 'phone': phone});
   }
 
- Future<void> deleteCustomer({
+  Future<void> deleteCustomer({
     required String storeId,
     required String customerId,
   }) {
     return customersRef(storeId).doc(customerId).delete();
   }
 
- /// يستورد نسخة احتياطية سابقة (customers + transactions) بنفس المعرّفات
+  /// يستورد نسخة احتياطية سابقة (customers + transactions) بنفس المعرّفات
   /// الأصلية حتى لا يتكرر الاستيراد لو نُفّذ أكثر من مرة بالخطأ.
   /// أي عملية موجودة مسبقاً بنفس الـ id تُرفض تلقائياً من قاعدة الأمان
   /// (لأن العمليات Append-only) فنعدّها "متجاوزة" وليست فشلاً حقيقياً.
-  Future<({int customersRestored, int transactionsRestored, int transactionsSkipped})>
-      importBackup({
+  Future<
+    ({int customersRestored, int transactionsRestored, int transactionsSkipped})
+  >
+  importBackup({
     required String storeId,
     required Map<String, dynamic> backupData,
   }) async {
@@ -96,7 +99,8 @@ class FirebaseSevice {
             'type': txn['type'],
             'description': txn['description'],
             'date': DateTime.tryParse(txn['date'] ?? '') ?? DateTime.now(),
-            if (txn['dueDate'] != null) 'dueDate': DateTime.tryParse(txn['dueDate']),
+            if (txn['dueDate'] != null)
+              'dueDate': DateTime.tryParse(txn['dueDate']),
           });
           transactionsRestored++;
         } on FirebaseException {
@@ -113,7 +117,7 @@ class FirebaseSevice {
     );
   }
 
-   /// يجمع نسخة كاملة من بيانات البقالة (زبائن + عمليات) كخريطة واحدة
+  /// يجمع نسخة كاملة من بيانات البقالة (زبائن + عمليات) كخريطة واحدة
   /// جاهزة للتحويل إلى JSON. يُستخدم في زر "تصدير نسخة احتياطية" فقط،
   /// وليس عملية تحدث باستمرار، فقراءة كل البيانات مرة واحدة هنا مقبولة.
   Future<Map<String, dynamic>> exportBackup(String storeId) async {
@@ -147,12 +151,11 @@ class FirebaseSevice {
 
   // ---------- مرجع مجموعة عمليات زبون معين ----------
   CollectionReference transactionsRef(String storeId, String customerId) =>
-      customersRef(storeId)
-          .doc(customerId)
-          .collection(AppConstants.transactionsSubCollection);
+      customersRef(
+        storeId,
+      ).doc(customerId).collection(AppConstants.transactionsSubCollection);
 
-
-           Future<void> addTransaction({
+  Future<void> addTransaction({
     required String storeId,
     required String customerId,
     required double amount,
@@ -160,6 +163,20 @@ class FirebaseSevice {
     String? description,
     DateTime? dueDate,
   }) async {
+    // 1. جلب بيانات العميل والحد الأقصى للدين أولاً
+    final customerSnap = await customersRef(storeId).doc(customerId).get();
+    final customerData = customerSnap.data() as Map<String, dynamic>?;
+    final currentBalance =
+        (customerData?['balance'] as num?)?.toDouble() ?? 0.0;
+    final customerName = customerData?['name'] ?? 'غير معروف';
+    final customerPhone = customerData?['phone'] ?? '';
+
+    final debtLimit = await getDebtLimit(storeId);
+
+    // حساب الرصيد الجديد محلياً للتحقق منه
+    final delta = type == AppConstants.transactionTypeDebt ? amount : -amount;
+    final expectedNewBalance = currentBalance + delta;
+
     final batch = _db.batch();
 
     final txnDoc = transactionsRef(storeId, customerId).doc();
@@ -174,36 +191,66 @@ class FirebaseSevice {
     });
 
     final customerDoc = customersRef(storeId).doc(customerId);
-    final delta = type == AppConstants.transactionTypeDebt ? amount : -amount;
+
     final updateData = <String, dynamic>{
       'balance': FieldValue.increment(delta),
       'lastTransactionAt': FieldValue.serverTimestamp(),
     };
 
-    // نحدّث تاريخ الاستحقاق فقط عند إضافة دين له تاريخ استحقاق.
-    // ملاحظة: هذا تبسيط يخزّن آخر تاريخ استحقاق أُدخل فقط، وليس
-    // "الأقرب" من بين عدة ديون مختلفة الاستحقاق — يكفي للنسخة الأولى،
-    // ويمكن تطويره لاحقاً بحساب الأقرب فعلياً عبر Cloud Function.
     if (type == AppConstants.transactionTypeDebt && dueDate != null) {
       updateData['nextDueDate'] = dueDate;
     }
 
     batch.update(customerDoc, updateData);
 
- // نحدّث "إجمالي المدفوعات" كرقم جاهز على مستند البقالة نفسها —
-    // لأن aggregate() في Firestore ما يدعم .snapshots() (لا يوجد Stream له)،
-    // فهذا الأسلوب (رقم مُجمّع مسبقاً) هو اللي يسمح بتحديث لحظي حقيقي.
     if (type == AppConstants.transactionTypePayment) {
       batch.update(storeDoc(storeId), {
         'totalPayments': FieldValue.increment(amount),
       });
-
     }
-    
+
+    if (type == AppConstants.transactionTypeDebt &&
+        debtLimit > 0 &&
+        expectedNewBalance >= debtLimit) {
+      final alertDoc = storeDoc(
+        storeId,
+      ).collection('debtAlerts').doc(customerId);
+      batch.set(alertDoc, {
+        'customerId': customerId,
+        'customerName': customerName,
+        'balance': expectedNewBalance,
+        'limit': debtLimit,
+        'customerPhone': customerPhone,
+        'createdAt': FieldValue.serverTimestamp(),
+        'dismissed': false,
+      }, SetOptions(merge: true));
+    }
     await batch.commit();
   }
 
-    Future<String> addCustomer({
+  Stream<QuerySnapshot> watchDebtAlerts(String storeId) {
+    if (storeId.isEmpty) return const Stream.empty();
+    return storeDoc(storeId)
+        .collection('debtAlerts')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Future<void> dismissDebtAlert(String storeId, String alertId) => storeDoc(
+    storeId,
+  ).collection('debtAlerts').doc(alertId).update({'dismissed': true});
+
+  Future<void> saveDebtLimit(String storeId, double limit) =>
+      storeDoc(storeId).set({'debtLimit': limit}, SetOptions(merge: true));
+
+  Future<double> getDebtLimit(String storeId) async {
+    final snap = await storeDoc(storeId).get();
+    return ((snap.data() as Map<String, dynamic>?)?['debtLimit'] as num?)
+            ?.toDouble() ??
+        0;
+  }
+
+  Future<String> addCustomer({
     required String storeId,
     required String name,
     required String phone,
@@ -218,16 +265,22 @@ class FirebaseSevice {
     return doc.id;
   }
 
-  
   Stream<QuerySnapshot> watchCustomers(String storeId) {
-    return customersRef(storeId).orderBy('lastTransactionAt', descending: true).snapshots();
+    if (storeId.isEmpty) return const Stream.empty();
+    return customersRef(
+      storeId,
+    ).orderBy('lastTransactionAt', descending: true).snapshots();
   }
 
   Stream<QuerySnapshot> watchTransactions(String storeId, String customerId) {
-    return transactionsRef(storeId, customerId).orderBy('date', descending: true).snapshots();
+    if (storeId.isEmpty || customerId.isEmpty) return const Stream.empty();
+    return transactionsRef(
+      storeId,
+      customerId,
+    ).orderBy('date', descending: true).snapshots();
   }
 
- Future<double> getTotalPayments(String storeId) async {
+  Future<double> getTotalPayments(String storeId) async {
     final query = FirebaseFirestore.instance
         .collectionGroup(AppConstants.transactionsSubCollection)
         .where('storeId', isEqualTo: storeId)
@@ -237,10 +290,10 @@ class FirebaseSevice {
     return (snapshot.getSum('amount') ?? 0).toDouble();
   }
 
-    /// مجاميع فترة زمنية معينة لشاشة التقارير (اليوم/الأسبوع/الشهر).
+  /// مجاميع فترة زمنية معينة لشاشة التقارير (اليوم/الأسبوع/الشهر).
   /// ثلاث قراءات تجميع فقط، بغض النظر عن عدد العمليات الفعلي داخل الفترة.
   Future<({double totalDebtAdded, double totalPayments, int transactionsCount})>
-      getPeriodTotals({
+  getPeriodTotals({
     required String storeId,
     required DateTime start,
     required DateTime end,
@@ -269,4 +322,13 @@ class FirebaseSevice {
       transactionsCount: countSnap.count ?? 0,
     );
   }
+
+  /// يسجّل "آخر مزامنة ناجحة مع السيرفر" على مستند البقالة بوقت السيرفر (موثوق).
+  /// يُقرأ لاحقاً من الكاش عند العمل بدون إنترنت لحساب عدد أيام الانقطاع.
+  Future<void> markSynced(String storeId) =>
+      storeDoc(storeId).update({'lastSyncAt': FieldValue.serverTimestamp()});
+
+  /// قراءة إجبارية من السيرفر (تفشل لو لا يوجد إنترنت) — لزر "تحقق من الاتصال الآن".
+  Future<DocumentSnapshot> fetchStoreFromServer(String storeId) =>
+      storeDoc(storeId).get(const GetOptions(source: Source.server));
 }
