@@ -3,9 +3,9 @@ class AppConstants {
 
   // رقم واتساب الدعم — يظهر لصاحب البقالة عند انتهاء اشتراكه لتجديده يدوياً.
 
-  static const String supportWhatsappNumber = '+967780775168';
+  static const String supportWhatsappNumber = '???????????';
   static const int maxOfflineDays = 7;
-  static const String adminEmail = 'ahmedjuid5@gmail.com';
+  static const String adminEmail = '?????????????????';
   // أسماء الـ Collections في Firestore
   static const String storesCollection = 'stores';
   static const String customersSubCollection = 'customers';
